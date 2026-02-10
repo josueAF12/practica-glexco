@@ -1,0 +1,156 @@
+name: 🎓 Clase GitHub Actions - Conceptos Básicos
+
+on:
+  workflow_dispatch:  # Se ejecuta manualmente desde GitHub
+
+jobs:
+  # JOB 1: Configuración inicial
+  configuracion:
+    name: ⚙️ Configuración
+    runs-on: ubuntu-latest
+    
+    outputs:
+      mensaje: ${{ steps.crear-mensaje.outputs.saludo }}
+      timestamp: ${{ steps.obtener-tiempo.outputs.hora }}
+    
+    steps:
+      # STEP 1: Obtener el código
+      - name: Obtener código del repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      # STEP 2: Mostrar información básica
+      - name: Mostrar información del entorno
+        run: |
+          echo "👋 Hola estudiante!"
+          echo "Repositorio: ${{ github.repository }}"
+          echo "Ejecutado por: ${{ github.actor }}"
+          echo "Directorio actual: $(pwd)"
+      
+      # STEP 3: Crear un archivo simple
+      - name: Crear archivo de prueba
+        run: |
+          echo "Este es un archivo creado en GitHub Actions" > prueba.txt
+          echo "Fecha: $(date)" >> prueba.txt
+          echo "✅ Archivo 'prueba.txt' creado"
+          cat prueba.txt
+      
+      # STEP 4: Crear output para compartir
+      - name: Crear mensaje personalizado
+        id: crear-mensaje
+        run: |
+          echo "saludo=¡Hola desde el job de configuración!" >> $GITHUB_OUTPUT
+      
+      # STEP 5: Obtener hora actual
+      - name: Obtener hora de ejecución
+        id: obtener-tiempo
+        run: |
+          echo "hora=$(date +%H:%M:%S)" >> $GITHUB_OUTPUT
+
+  # JOB 2: Procesamiento (depende del primero)
+  procesamiento:
+    name: 🔄 Procesamiento de datos
+    runs-on: ubuntu-latest
+    needs: configuracion  # Espera a que termine 'configuracion'
+    
+    steps:
+      # STEP 1: Mostrar el mensaje del job anterior
+      - name: Mostrar mensaje recibido
+        run: |
+          echo "📨 Mensaje del job anterior:"
+          echo "${{ needs.configuracion.outputs.mensaje }}"
+          echo "⏰ Hora: ${{ needs.configuracion.outputs.timestamp }}"
+      
+      # STEP 2: Procesar archivo
+      - name: Contar líneas del archivo
+        run: |
+          echo "📊 Contando líneas del archivo prueba.txt:"
+          wc -l prueba.txt
+          echo "📄 Contenido:"
+          cat prueba.txt
+      
+      # STEP 3: Simular trabajo
+      - name: Simular tarea de procesamiento
+        run: |
+          echo "🔄 Procesando datos..."
+          sleep 2  # Esperar 2 segundos (simula trabajo)
+          echo "✅ Procesamiento completado"
+      
+      # STEP 4: Crear resultado
+      - name: Crear archivo de resultados
+        run: |
+          echo "RESULTADO DEL PROCESAMIENTO" > resultado.txt
+          echo "---------------------------" >> resultado.txt
+          echo "Estatus: EXITOSO" >> resultado.txt
+          echo "Archivos procesados: 1" >> resultado.txt
+          echo "Hora: $(date)" >> resultado.txt
+          echo "📁 Archivo 'resultado.txt' creado"
+
+  # JOB 3: Verificación (ejecuta en paralelo con 'procesamiento')
+  verificacion:
+    name: ✅ Verificación
+    runs-on: ubuntu-latest
+    needs: configuracion  # También depende de 'configuracion'
+    
+    steps:
+      # STEP 1: Verificar que tenemos archivos
+      - name: Verificar existencia de archivos
+        run: |
+          echo "🔍 Verificando archivos..."
+          if [ -f "prueba.txt" ]; then
+            echo "✅ prueba.txt existe"
+          else
+            echo "❌ prueba.txt NO existe"
+            exit 1
+          fi
+      
+      # STEP 2: Verificar permisos
+      - name: Verificar permisos
+        run: |
+          echo "🔐 Verificando permisos:"
+          ls -la prueba.txt
+      
+      # STEP 3: Prueba simple
+      - name: Ejecutar prueba
+        run: |
+          echo "🧪 Ejecutando prueba simple..."
+          echo "Esto es una prueba de concepto"
+          echo "2 + 2 = $((2 + 2))"
+
+  # JOB 4: Resumen final (espera a todos)
+  resumen-final:
+    name: 📋 Resumen Final
+    runs-on: ubuntu-latest
+    needs: [configuracion, procesamiento, verificacion]
+    
+    steps:
+      # STEP 1: Mostrar resumen
+      - name: Mostrar resumen de ejecución
+        run: |
+          echo "========================================"
+          echo "          RESUMEN DEL WORKFLOW          "
+          echo "========================================"
+          echo ""
+          echo "📊 Jobs ejecutados:"
+          echo "  - ⚙️  Configuración: ${{ needs.configuracion.result }}"
+          echo "  - 🔄 Procesamiento: ${{ needs.procesamiento.result }}"
+          echo "  - ✅ Verificación: ${{ needs.verificacion.result }}"
+          echo ""
+          echo "📝 Información:"
+          echo "  - Repositorio: ${{ github.repository }}"
+          echo "  - Usuario: ${{ github.actor }}"
+          echo "  - Hora de inicio: ${{ needs.configuracion.outputs.timestamp }}"
+          echo "  - Hora de fin: $(date +%H:%M:%S)"
+          echo ""
+          echo "✅ ¡Workflow completado exitosamente!"
+          echo "========================================"
+      
+      # STEP 2: Subir archivos como artifacts
+      - name: Guardar archivos generados
+        uses: actions/upload-artifact@v3
+        with:
+          name: archivos-generados
+          path: |
+            prueba.txt
+            resultado.txt

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # Se ejecuta manualmente desde la interfaz
 
 jobs:
-  # JOB 1: Preparación - Corre primero
+  # JOB 1: Preparación
   preparacion:
     name: 📦 Preparar ambiente
     runs-on: ubuntu-latest
