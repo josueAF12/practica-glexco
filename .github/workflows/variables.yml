@@ -152,7 +152,7 @@ jobs:
       
       # Paso 3: Guardar como artifact para descargar
       - name: Guardar reporte
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reporte-ejecucion
           path: reporte.txt
