@@ -1,0 +1,162 @@
+name: 🎓 Ejemplo Sencillo - Eventos GitHub Actions
+
+on:
+  # 1. EVENTO PUSH - Cuando haces commit y push
+  push:
+    branches: [main]
+  
+  # 2. EVENTO PULL REQUEST - Cuando creas o actualizas un PR
+  pull_request:
+    branches: [main]
+  
+  # 3. EVENTO MANUAL - Cuando ejecutas manualmente
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: '¿A qué ambiente?'
+        required: true
+        default: 'pruebas'
+        type: choice
+        options:
+          - pruebas
+          - produccion
+  
+  # 4. EVENTO PROGRAMADO - Se ejecuta automáticamente
+  schedule:
+    - cron: '30 14 * * *'  # Todos los días a las 14:30 UTC
+
+jobs:
+  # Este job SIEMPRE se ejecuta, identifica qué evento ocurrió
+  identificar-evento:
+    name: 🔍 Identificar Evento
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Mostrar qué evento nos activó
+        run: |
+          echo "========================================"
+          echo "🎯 ESTE WORKFLOW FUE ACTIVADO POR:"
+          echo "========================================"
+          
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "📤 EVENTO: PUSH (Commit)"
+            echo "📝 Mensaje: ${{ github.event.head_commit.message }}"
+            echo "👤 Autor: ${{ github.event.head_commit.author.name }}"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "🔀 EVENTO: PULL REQUEST"
+            echo "#${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+            echo "👤 Creado por: ${{ github.event.pull_request.user.login }}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "👆 EVENTO: MANUAL"
+            echo "👤 Ejecutado por: ${{ github.actor }}"
+            echo "🎯 Ambiente elegido: ${{ github.event.inputs.ambiente }}"
+          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "⏰ EVENTO: PROGRAMADO"
+            echo "🕒 Hora actual: $(date)"
+          fi
+          
+          echo "========================================"
+          echo "📁 Repositorio: ${{ github.repository }}"
+          echo "🌿 Rama: ${{ github.ref_name }}"
+          echo "🔑 Commit: ${GITHUB_SHA:0:8}"
+          echo "========================================"
+
+  # Este job solo para PUSH
+  build-push:
+    name: 🏗️ Build (solo para push)
+    runs-on: ubuntu-latest
+    needs: identificar-evento
+    if: github.event_name == 'push'  # Solo se ejecuta para push
+    
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      
+      - name: Mensaje para push
+        run: |
+          echo "✅ Se hizo un push a la rama main"
+          echo "📦 Esto podría ser un proceso de build"
+          echo "🚀 Ejemplo: npm install && npm run build"
+
+  # Este job solo para PULL REQUEST
+  revisar-pr:
+    name: 👀 Revisar PR
+    runs-on: ubuntu-latest
+    needs: identificar-evento
+    if: github.event_name == 'pull_request'  # Solo se ejecuta para PR
+    
+    steps:
+      - name: Descargar código del PR
+        uses: actions/checkout@v4
+      
+      - name: Mensaje para PR
+        run: |
+          echo "🔍 Revisando Pull Request..."
+          echo "📋 Esto podría incluir:"
+          echo "   - Ejecutar tests"
+          echo "   - Verificar estilo de código"
+          echo "   - Revisar cobertura"
+
+  # Este job solo para ejecución MANUAL
+  despliegue-manual:
+    name: 🚀 Despliegue Manual
+    runs-on: ubuntu-latest
+    needs: identificar-evento
+    if: github.event_name == 'workflow_dispatch'  # Solo se ejecuta manualmente
+    
+    steps:
+      - name: Mostrar parámetros
+        run: |
+          echo "👤 Solicitado por: ${{ github.actor }}"
+          echo "🎯 Ambiente: ${{ github.event.inputs.ambiente }}"
+          
+          if [[ "${{ github.event.inputs.ambiente }}" == "produccion" ]]; then
+            echo "⚠️  ¡ATENCIÓN! Desplegando a PRODUCCIÓN"
+          else
+            echo "🛠️  Desplegando a ambiente de PRUEBAS"
+          fi
+
+  # Este job solo para eventos PROGRAMADOS
+  tarea-programada:
+    name: 📅 Tarea Programada
+    runs-on: ubuntu-latest
+    needs: identificar-evento
+    if: github.event_name == 'schedule'  # Solo se ejecuta programado
+    
+    steps:
+      - name: Ejecutar tarea automática
+        run: |
+          echo "🤖 Ejecutando tarea programada automáticamente"
+          echo "📊 Podría ser:"
+          echo "   - Generar reportes diarios"
+          echo "   - Hacer backup de datos"
+          echo "   - Limpiar caché"
+
+  # Este job SIEMPRE se ejecuta al final
+  resumen-final:
+    name: 📋 Resumen Final
+    runs-on: ubuntu-latest
+    needs: 
+      - identificar-evento
+      - build-push
+      - revisar-pr
+      - despliegue-manual
+      - tarea-programada
+    if: always()  # ¡Siempre se ejecuta!
+    
+    steps:
+      - name: Mostrar resumen
+        run: |
+          echo "========================================"
+          echo "           RESUMEN DE EJECUCIÓN         "
+          echo "========================================"
+          echo ""
+          echo "📊 Jobs ejecutados según el evento:"
+          echo "   🔍 Identificar Evento: ${{ needs.identificar-evento.result }}"
+          echo "   🏗️  Build (push): ${{ needs.build-push.result || 'No ejecutado' }}"
+          echo "   👀 Revisar PR: ${{ needs.revisar-pr.result || 'No ejecutado' }}"
+          echo "   🚀 Despliegue Manual: ${{ needs.despliegue-manual.result || 'No ejecutado' }}"
+          echo "   📅 Tarea Programada: ${{ needs.tarea-programada.result || 'No ejecutado' }}"
+          echo ""
+          echo "✅ Workflow completado"
+          echo "========================================"
