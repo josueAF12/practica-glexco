@@ -1,0 +1,91 @@
+name: 🎓 Ejemplo Simple - Condicionales, Matriz, Dependencias
+
+on:
+  workflow_dispatch:  # Solo ejecución manual para la clase
+
+jobs:
+  # JOB 1: Construir con múltiples versiones (MATRIZ)
+  construir:
+    name: 🏗️ Construir
+    runs-on: ubuntu-latest
+    
+    # MATRIZ: Ejecuta este job 3 veces con diferentes versiones
+    strategy:
+      matrix:
+        node-version: [14, 16, 18]  # 3 versiones diferentes
+    
+    steps:
+      - name: Mostrar versión de Node.js
+        run: |
+          echo "🔧 Usando Node.js ${{ matrix.node-version }}"
+          echo "Este job se ejecuta 3 veces, una por cada versión"
+      
+      - name: Paso solo para Node 18
+        if: matrix.node-version == 18  # CONDICIONAL
+        run: echo "🚀 Esta es la versión más reciente de Node"
+      
+      - name: Paso solo para versiones viejas
+        if: matrix.node-version < 16  # CONDICIONAL
+        run: echo "⚠️  Versión antigua de Node - considerar actualizar"
+
+  # JOB 2: Probar (DEPENDE de construir)
+  probar:
+    name: 🧪 Probar
+    runs-on: ubuntu-latest
+    needs: construir  # DEPENDENCIA: Espera a que 'construir' termine
+    
+    steps:
+      - name: Ejecutar pruebas
+        run: |
+          echo "🧪 Ejecutando pruebas..."
+          echo "Este job SOLO comienza después de que 'construir' termine"
+          echo "Esperó 3 ejecuciones (una por cada versión de Node)"
+      
+      - name: Paso condicional
+        # CONDICIONAL en step
+        if: ${{ success() }}  # Solo si el paso anterior fue exitoso
+        run: echo "✅ Todas las pruebas pasaron"
+
+  # JOB 3: Desplegar (condicional por rama)
+  desplegar:
+    name: 🚀 Desplegar
+    runs-on: ubuntu-latest
+    needs: probar  # DEPENDENCIA: Espera a que 'probar' termine
+    
+    # CONDICIONAL en job completo
+    if: github.ref == 'refs/heads/main'  # Solo en rama main
+    
+    steps:
+      - name: Desplegar aplicación
+        run: |
+          echo "🚀 Desplegando a producción..."
+          echo "Este job solo se ejecuta si:"
+          echo "1. Estamos en la rama main"
+          echo "2. El job 'probar' terminó exitosamente"
+          echo "3. El job 'construir' terminó exitosamente"
+
+  # JOB 4: Notificar (SIEMPRE se ejecuta)
+  notificar:
+    name: 📢 Notificar
+    runs-on: ubuntu-latest
+    needs: [construir, probar, desplegar]  # DEPENDENCIAS múltiples
+    
+    # CONDICIONAL: SIEMPRE se ejecuta, incluso si otros fallan
+    if: always()
+    
+    steps:
+      - name: Mostrar resultados
+        run: |
+          echo "📊 RESUMEN DE EJECUCIÓN"
+          echo "======================="
+          echo "🏗️  Construir: ${{ needs.construir.result }}"
+          echo "🧪 Probar: ${{ needs.probar.result }}"
+          echo "🚀 Desplegar: ${{ needs.desplegar.result || 'No ejecutado (condicional)' }}"
+          echo ""
+          
+          # CONDICIONAL basado en resultados
+          if [[ "${{ needs.construir.result }}" == "success" ]]; then
+            echo "✅ ¡Construcción exitosa!"
+          else
+            echo "❌ Hubo problemas en la construcción"
+          fi
