@@ -1,0 +1,121 @@
+name: 🎓 Ejemplo Básico de Jobs y Steps (CORREGIDO)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  preparacion:
+    name: 📦 Preparar ambiente
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Descargar código del repositorio
+        uses: actions/checkout@v4
+      
+      - name: Crear archivo de configuración
+        run: |
+          echo "PROYECTO=MiProyecto" > config.txt
+          echo "VERSION=1.0.0" >> config.txt
+          echo "FECHA=$(date)" >> config.txt
+          echo "✅ Archivo config.txt creado"
+          ls -la
+      
+      # 🆕 GUARDAR el archivo como artifact
+      - name: Guardar archivo para siguiente job
+        uses: actions/upload-artifact@v4
+        with:
+          name: configuracion
+          path: config.txt
+      
+      - name: Generar salida (output)
+        run: |
+          echo "nombre=mi-aplicacion" >> $GITHUB_OUTPUT
+          echo "estado=preparado" >> $GITHUB_OUTPUT
+      
+      - name: Mostrar detalles del runner
+        run: |
+          echo "🏃 Runner: ${{ runner.os }}"
+          echo "📁 Directorio: ${{ runner.workspace }}"
+          echo "🔧 GitHub SHA: ${{ github.sha }}"
+
+  pruebas:
+    name: 🧪 Ejecutar pruebas
+    runs-on: ubuntu-latest
+    needs: preparacion
+    
+    steps:
+      # 🆕 DESCARGAR el artifact del job anterior
+      - name: Descargar archivo de configuración
+        uses: actions/download-artifact@v4
+        with:
+          name: configuracion
+      
+      - name: Leer archivo creado
+        run: |
+          echo "📖 Contenido de config.txt:"
+          cat config.txt
+          
+          if [ ! -f "config.txt" ]; then
+            echo "❌ ERROR: No se encontró config.txt"
+            exit 1
+          fi
+      
+      - name: Ejecutar pruebas simples
+        run: |
+          echo "🧪 Ejecutando pruebas..."
+          echo "1. Prueba de conexión... ✅"
+          echo "2. Validación de datos... ✅"
+          echo "3. Prueba de rendimiento... ✅"
+          echo "🎉 ¡Todas las pruebas pasaron!"
+      
+      - name: Prueba condicional (puede fallar)
+        id: prueba-condicional
+        continue-on-error: true
+        run: |
+          echo "🔍 Ejecutando prueba opcional..."
+          if [ $((RANDOM % 3)) -eq 0 ]; then
+            echo "⚠️ Esta prueba falló (simulado)"
+            exit 1
+          else
+            echo "✅ Prueba opcional exitosa"
+          fi
+      
+      - name: Mostrar resultado de pruebas
+        run: |
+          echo "📊 Resultado: ${{ steps.prueba-condicional.outcome }}"
+          if [ "${{ steps.prueba-condicional.outcome }}" = "failure" ]; then
+            echo "⚠️ Una prueba falló, pero el job continúa"
+          fi
+
+  resumen:
+    name: 📋 Mostrar resumen
+    runs-on: ubuntu-latest
+    needs: [preparacion, pruebas]
+    if: always()
+    
+    steps:
+      - name: Recolectar resultados
+        run: |
+          echo "📊 RESUMEN DEL WORKFLOW"
+          echo "========================"
+          echo "📦 Preparación: ${{ needs.preparacion.result }}"
+          echo "🧪 Pruebas: ${{ needs.pruebas.result }}"
+          echo "⏰ Hora: $(date)"
+          echo "👤 Ejecutado por: ${{ github.actor }}"
+          
+          if [[ "${{ needs.pruebas.result }}" == "success" ]]; then
+            echo "🎉 ¡Todos los jobs principales fueron exitosos!"
+          else
+            echo "⚠️ Algunos jobs tuvieron problemas"
+          fi
+      
+      - name: Mensaje de éxito
+        if: success()
+        run: echo "✅ ¡Workflow completado exitosamente!"
+      
+      - name: Mensaje de advertencia
+        if: failure()
+        run: echo "⚠️ El workflow completó con algunos errores"
+      
+      - name: Limpieza final
+        run: echo "🧹 Finalizando ejecución..."
