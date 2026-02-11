@@ -1,0 +1,86 @@
+name: CI - Pruebas por Áreas Modificadas (Push y PR)
+
+on:
+  # Trigger 1: Pull Request (como antes)
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'src/backend/**'
+      - 'src/frontend/**'
+      - 'tests/**'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
+      - 'README.md'
+
+  # Trigger 2: Push directo a ramas principales, solo si hay cambios en código
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+    paths:
+      - 'src/backend/**'
+      - 'src/frontend/**'
+      - 'tests/**'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
+      - 'README.md'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      tests: ${{ steps.filter.outputs.tests }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Para PR: compara con base_ref; para push: necesitamos fetch-depth: 0
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # En push, compara con el commit anterior; en PR contra base_ref
+          base: ${{ github.event_name == 'push' && github.event.before || github.base_ref }}
+          filters: |
+            backend:
+              - 'src/backend/**'
+            frontend:
+              - 'src/frontend/**'
+            tests:
+              - 'tests/**'
+
+  test-backend:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar dependencias backend
+        run: echo "Instalando paquetes de backend..."
+      - name: Ejecutar pruebas de backend
+        run: echo "Corriendo tests de backend..."
+
+  test-frontend:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar dependencias frontend
+        run: echo "Instalando paquetes de frontend..."
+      - name: Ejecutar pruebas de frontend
+        run: echo "Corriendo tests de frontend..."
+
+  test-unit:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.tests == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ejecutar suite de pruebas unitarias
+        run: echo "Corriendo tests unitarios generales..."
