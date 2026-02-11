@@ -1,19 +1,15 @@
 name: CI - Pruebas por Áreas Modificadas (Push y PR)
 
 on:
-  # Trigger 1: Pull Request (como antes)
+  # Trigger 1: Pull Request
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'src/backend/**'
       - 'src/frontend/**'
       - 'tests/**'
-    paths-ignore:
-      - 'docs/**'
-      - '.github/**'
-      - 'README.md'
 
-  # Trigger 2: Push directo a ramas principales, solo si hay cambios en código
+  # Trigger 2: Push directo a ramas principales
   push:
     branches:
       - main
@@ -23,10 +19,6 @@ on:
       - 'src/backend/**'
       - 'src/frontend/**'
       - 'tests/**'
-    paths-ignore:
-      - 'docs/**'
-      - '.github/**'
-      - 'README.md'
 
 jobs:
   detect-changes:
@@ -38,13 +30,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Para PR: compara con base_ref; para push: necesitamos fetch-depth: 0
           fetch-depth: 0
 
       - uses: dorny/paths-filter@v3
         id: filter
         with:
-          # En push, compara con el commit anterior; en PR contra base_ref
           base: ${{ github.event_name == 'push' && github.event.before || github.base_ref }}
           filters: |
             backend:
