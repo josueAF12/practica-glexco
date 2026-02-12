@@ -3,7 +3,7 @@ name: Clase 2 - path filters and types SYNCRONIZE
 on:
   # Trigger 1: Pull Request
   pull_request:
-    types: [syncronize]
+    types: [synchronize]
     paths:
       - 'src/backend/**'
       - 'src/frontend/**'
