@@ -38,17 +38,17 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       tests: ${{ steps.filter.outputs.tests }}
-      prueba: ${{ steps.mi-step-prueba.outputs.prueba }}
+      glexo: ${{ steps.id-prueba.outputs.prueba }}
     steps:
       # Necesario para que paths-filter pueda comparar con el commit anterior
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Mostrar prueba
-        id: mi-step-prueba
+      - name: Settear texto
+        id: id-prueba
         run: | 
-          echo "prueba=prueba34" >> $GITHUB_OUTPUT
+          echo "prueba=Glexo" >> $GITHUB_OUTPUT
 
 
       # Compara el diff contra las rutas definidas y escribe "true"/"false" en cada output
@@ -72,10 +72,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Instalar dependencias backend
         run: echo "Instalando paquetes de backend..."
+        
       - name: Ejecutar pruebas de backend
         run: echo "Corriendo tests de backend..."
+
       - name: Usar output del job detect-changes
         run: echo "El valor de prueba es ${{ needs.detect-changes.outputs.prueba }}"
 
