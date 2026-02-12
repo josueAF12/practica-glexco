@@ -1,0 +1,65 @@
+name: Backup Automatizado de Base de Datos
+
+on:
+  schedule:
+    # Backup nocturno a las 2:30 AM UTC de lunes a viernes
+    - cron: '30 2 * * 1-5'
+    # Backup de fin de semana a las 4:00 AM UTC sábado y domingo
+    - cron: '0 4 * * 6,0'
+  workflow_dispatch:  # Permite ejecución manual para pruebas
+
+env:
+  BACKUP_BUCKET: my-backups-bucket
+  BACKUP_RETENTION_DAYS: 30
+
+jobs:
+  backup-database:
+    runs-on: ubuntu-latest
+    outputs:
+      backup-file: ${{ steps.create-backup.outputs.backup-file }}
+      timestamp: ${{ steps.timestamp.outputs.timestamp }}
+    steps:
+      - name: Obtener timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Simular conexión a BD y crear dump
+        id: create-backup
+        run: |
+          echo "Conectando a ${{ secrets.DB_HOST }}..."
+          # En un caso real: pg_dump, mysqldump, etc.
+          BACKUP_FILE="backup_${{ steps.timestamp.outputs.timestamp }}.sql.gz"
+          echo "Creando archivo $BACKUP_FILE (simulado)"
+          touch $BACKUP_FILE
+          echo "backup-file=$BACKUP_FILE" >> $GITHUB_OUTPUT
+          echo "Dump generado exitosamente"
+
+      - name: Subir a S3 (simulado)
+        run: |
+          echo "Subiendo ${{ steps.create-backup.outputs.backup-file }} al bucket ${{ env.BACKUP_BUCKET }}..."
+          echo "aws s3 cp ${{ steps.create-backup.outputs.backup-file }} s3://${{ env.BACKUP_BUCKET }}/backups/"
+          # En producción usarías acciones oficiales de AWS
+
+      - name: Notificar éxito por correo (simulado)
+        if: success()
+        run: |
+          echo "Enviando notificación a ${{ secrets.ALERT_EMAIL }}..."
+          echo "Backup ${{ steps.create-backup.outputs.backup-file }} completado y almacenado."
+
+      - name: Limpiar backups antiguos (simulado)
+        run: |
+          echo "Eliminando backups con más de ${{ env.BACKUP_RETENTION_DAYS }} días..."
+          # Comando real: aws s3 ls y delete
+
+  health-check:
+    needs: backup-database
+    runs-on: ubuntu-latest
+    if: always()  # Se ejecuta incluso si el backup falla
+    steps:
+      - name: Verificar estado del backup
+        run: |
+          if [ "${{ needs.backup-database.result }}" == "success" ]; then
+            echo "✅ Backup completado correctamente"
+          else
+            echo "❌ Fallo en el backup - revisar logs"
+          fi

@@ -1,0 +1,146 @@
+name: 🚀 Pipeline de Despliegue Parametrizado
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '🌍 Entorno destino'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+      version:
+        description: '📦 Versión a desplegar (ej: v1.2.3)'
+        required: true
+        type: string
+      region:
+        description: '🌎 Región del despliegue'
+        required: false
+        default: 'us-east-1'
+        type: choice
+        options:
+          - us-east-1
+          - eu-west-1
+          - ap-southeast-1
+      run_tests:
+        description: '🧪 Ejecutar suite de pruebas'
+        required: false
+        default: true
+        type: boolean
+      debug_mode:
+        description: '🐛 Activar modo debug (logs verbosos)'
+        required: false
+        default: false
+        type: boolean
+      max_retries:
+        description: '🔄 Número máximo de reintentos'
+        required: false
+        default: 3
+        type: number
+      notify_slack:
+        description: '🔔 Enviar notificación a Slack'
+        required: false
+        default: true
+        type: boolean
+
+# Variables de entorno globales
+env:
+  APP_NAME: "mi-app-clase"
+  DOCKER_REGISTRY: "ghcr.io/${{ github.repository }}"
+
+jobs:
+  # 1. VALIDACIÓN DE ENTRADAS
+  validate-inputs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar formato de versión (semver)
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ La versión debe tener formato semver (ej: v1.2.3)"
+            exit 1
+          fi
+          echo "✅ Versión válida: $VERSION"
+
+      - name: Verificar entorno de producción solo en rama main
+        if: ${{ github.event.inputs.environment == 'production' && github.ref != 'refs/heads/main' }}
+        run: |
+          echo "❌ Solo se puede desplegar a producción desde la rama main"
+          exit 1
+
+  # 2. CONSTRUCCIÓN Y SUBIDA DE IMAGEN (simulada)
+  build:
+    needs: validate-inputs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Simular build
+        run: |
+          echo "🔨 Construyendo imagen para ${{ env.APP_NAME }}:${{ github.event.inputs.version }}"
+          echo "Registro: ${{ env.DOCKER_REGISTRY }}"
+          # docker build -t $DOCKER_REGISTRY/$APP_NAME:$VERSION .
+      - name: Subir artefacto (simulado)
+        run: |
+          echo "📦 Subiendo imagen a ${{ env.DOCKER_REGISTRY }}"
+
+  # 3. PRUEBAS (condicionadas por input run_tests)
+  test:
+    needs: build
+    if: ${{ github.event.inputs.run_tests == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-suite: [unit, integration, e2e]
+    steps:
+      - name: Ejecutar pruebas ${{ matrix.test-suite }}
+        run: |
+          echo "🧪 Corriendo pruebas ${{ matrix.test-suite }}..."
+          sleep 2
+          echo "✅ Pruebas ${{ matrix.test-suite }} pasaron"
+
+  # 4. DESPLIEGUE POR ENTORNO (usa GitHub Environments)
+  deploy:
+    needs: [build, test]
+    if: ${{ always() && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment }}
+      url: ${{ steps.deploy-url.outputs.url }}
+    env:
+      ENV_SECRET: ${{ secrets.API_KEY }}  # Depende del entorno configurado
+    steps:
+      - name: Configurar AWS CLI (simulado)
+        if: ${{ github.event.inputs.region != '' }}
+        run: |
+          echo "🌎 Configurando región ${{ github.event.inputs.region }}"
+      - name: Desplegar aplicación
+        id: deploy
+        run: |
+          echo "🚀 Desplegando ${{ env.APP_NAME }}:${{ github.event.inputs.version }} en ${{ github.event.inputs.environment }}"
+          echo "Modo debug: ${{ github.event.inputs.debug_mode }}"
+          echo "Reintentos máximos: ${{ github.event.inputs.max_retries }}"
+          # Simular URL de despliegue
+          URL="https://${{ github.event.inputs.environment }}.${{ env.APP_NAME }}.com"
+          echo "url=$URL" >> $GITHUB_OUTPUT
+      - name: Verificar salud
+        run: |
+          echo "🩺 Verificando endpoint: ${{ steps.deploy.outputs.url }}"
+          # curl -f $URL
+
+  # 5. NOTIFICACIÓN (condicionada)
+  notify:
+    needs: deploy
+    if: ${{ always() && github.event.inputs.notify_slack == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar notificación a Slack (simulado)
+        run: |
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "✅ Despliegue exitoso en ${{ github.event.inputs.environment }}"
+          else
+            echo "❌ Fallo en despliegue en ${{ github.event.inputs.environment }}"
+          fi
+          echo "🔔 Notificación enviada a Slack (webhook ${{ secrets.SLACK_WEBHOOK }})"

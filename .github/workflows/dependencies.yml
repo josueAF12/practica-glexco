@@ -1,0 +1,106 @@
+name: 🏗️ Pipeline Avanzado con Needs
+
+on: push
+
+jobs:
+  # -----------------------------------------------------------------
+  # 1. JOBS DE CONSTRUCCIÓN (paralelos)
+  # -----------------------------------------------------------------
+  build-backend:
+    runs-on: ubuntu-latest
+    outputs:
+      artifact: ${{ steps.upload.outputs.artifact }}
+    steps:
+      - name: Compilar backend
+        run: echo "🔨 Compilando backend..."
+      - name: Subir artefacto (simulado)
+        id: upload
+        run: echo "artifact=backend-v1.0.0.jar" >> $GITHUB_OUTPUT
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    outputs:
+      artifact: ${{ steps.upload.outputs.artifact }}
+    steps:
+      - name: Compilar frontend
+        run: echo "🎨 Compilando frontend..."
+      - name: Subir artefacto
+        id: upload
+        run: echo "artifact=frontend-v1.0.0.zip" >> $GITHUB_OUTPUT
+
+  # -----------------------------------------------------------------
+  # 2. JOB DE INTEGRACIÓN (depende de AMBOS builds)
+  # -----------------------------------------------------------------
+  integration:
+    needs: [build-backend, build-frontend]   # Espera a que ambos terminen
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener artefactos
+        run: |
+          echo "📦 Backend: ${{ needs.build-backend.outputs.artifact }}"
+          echo "📦 Frontend: ${{ needs.build-frontend.outputs.artifact }}"
+      - name: Ejecutar pruebas de integración
+        run: echo "🧪 Probando integración..."
+
+  # -----------------------------------------------------------------
+  # 3. MATRIZ DE PRUEBAS UNITARIAS (se ejecuta en paralelo)
+  #    Depende solo de los builds, no de integration
+  # -----------------------------------------------------------------
+  test-unit:
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [backend, frontend]
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Probar ${{ matrix.component }} en ${{ matrix.os }}
+        run: echo "✅ Pruebas unitarias de ${{ matrix.component }} en ${{ matrix.os }}"
+
+  # -----------------------------------------------------------------
+  # 4. JOB DE CALIDAD (SONAR) - Depende solo del backend (ejemplo)
+  # -----------------------------------------------------------------
+  sonar:
+    needs: build-backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Análisis de calidad
+        run: echo "🔍 Escaneo de código backend..."
+
+  # -----------------------------------------------------------------
+  # 5. DESPLIEGUE EN STAGING - Depende de integration Y test-unit
+  # -----------------------------------------------------------------
+  deploy-staging:
+    needs: [integration, test-unit, sonar]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Desplegar en staging
+        run: echo "🚀 Desplegando en staging..."
+
+  # -----------------------------------------------------------------
+  # 6. DESPLIEGUE EN PRODUCCIÓN - Solo si staging fue exitoso
+  #    Además, solo se ejecuta en la rama main
+  # -----------------------------------------------------------------
+  deploy-production:
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Desplegar en producción
+        run: echo "🔥 Desplegando en producción..."
+
+  # -----------------------------------------------------------------
+  # 7. JOB DE LIMPIEZA - Se ejecuta SIEMPRE, incluso si falla algo
+  # -----------------------------------------------------------------
+  cleanup:
+    needs: [deploy-staging, deploy-production]   # Espera a ambos (aunque uno no se ejecute)
+    if: always()                                 # Se ejecuta pase lo que pase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Limpiar recursos temporales
+        run: |
+          echo "🧹 Eliminando recursos..."
+          echo "Resultado de staging: ${{ needs.deploy-staging.result }}"
+          echo "Resultado de producción: ${{ needs.deploy-production.result }}"
