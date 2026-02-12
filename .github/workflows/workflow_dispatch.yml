@@ -1,4 +1,4 @@
-name: 🚀 Pipeline de Despliegue Parametrizado
+name: Clase 2 - workflow dispatch
 
 on:
   workflow_dispatch:

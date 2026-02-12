@@ -1,4 +1,4 @@
-name: Backup Automatizado de Base de Datos
+name: calse 2 - cron 
 
 on:
   schedule:
