@@ -1,5 +1,11 @@
 name: ROS CI
-on: [push]
+on:
+  workflow_dispatch:
+    inputs:
+      workspace:
+        description: "Workspace to build"
+        required: true
+        default: "workspace"
 
 jobs:
   build:
