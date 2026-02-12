@@ -19,16 +19,4 @@ module "aws_reverse_proxy" {
 
   override_response_status             = "${var.redirect_permanently ? "301" : "302"}"
   override_response_status_description = "${var.redirect_permanently ? "Moved Permanently" : "Found"}"
-
-  override_response_body = <<EOF
-  <!doctype html>
-  <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>Redirecting</title>
-  </head>
-  <body>
-    <pre>Redirecting to: <a href="${var.redirect_url}">${var.redirect_url}</a></pre>
-  </body>
-  EOF
 }
