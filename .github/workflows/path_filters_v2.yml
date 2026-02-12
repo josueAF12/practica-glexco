@@ -3,7 +3,7 @@ name: CI - Pruebas por Áreas Modificadas (Push y PR) V2
 on:
   # Trigger 1: Pull Request
   pull_request:
-    types: [opened]
+    types: [syncronize]
     paths:
       - 'src/backend/**'
       - 'src/frontend/**'
