@@ -50,7 +50,7 @@ on:
         required: false
         default: true
         type: boolean
-        
+
 # Variables de entorno globales
 env:
   APP_NAME: "mi-app-clase"
@@ -64,6 +64,7 @@ jobs:
       - name: Validar formato de versión (semver)
         run: |
           VERSION="${{ github.event.inputs.version }}"
+          echo "prueba: ${{ github.event.inputs.prueba }}"
           if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "❌ La versión debe tener formato semver (ej: v1.2.3)"
             exit 1
