@@ -45,6 +45,12 @@ on:
         required: false
         default: true
         type: boolean
+      test:
+        description: 'mensaje de prueba'
+        required: true
+        default: "hola"
+        type: string
+
 
 # Variables de entorno globales
 env:
@@ -60,7 +66,9 @@ jobs:
         run: |
           VERSION="${{ github.event.inputs.version }}"
           echo "prueba: ${{ github.event.inputs.prueba }}"
-          echo "test2: ${{ github.event.inputs.test2 }}"
+
+          echo "test: ${{ github.event.inputs.test }}"
+
           if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "❌ La versión debe tener formato semver (ej: v1.2.3)"
             exit 1
