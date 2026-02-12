@@ -45,7 +45,12 @@ on:
         required: false
         default: true
         type: boolean
-
+      prueba:
+        description: '🔄 Prueba'
+        required: false
+        default: true
+        type: boolean
+        
 # Variables de entorno globales
 env:
   APP_NAME: "mi-app-clase"
