@@ -1,4 +1,4 @@
-name: CI - Pruebas por Áreas Modificadas (Push y PR)
+name: Clase 2 - path filters and types OPENED
 
 on:
   # Trigger 1: Pull Request

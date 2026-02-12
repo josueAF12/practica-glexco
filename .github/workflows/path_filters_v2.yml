@@ -1,4 +1,4 @@
-name: CI - Pruebas por Áreas Modificadas (Push y PR) V2
+name: Clase 2 - path filters and types SYNCRONIZE
 
 on:
   # Trigger 1: Pull Request
